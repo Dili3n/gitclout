@@ -1,0 +1,26 @@
+<variation>
+    <div class="box max-width is-flex mb-4">
+        <div class="is-flex is-justify-content-center is-flex-direction-column mr-3" style="min-width:max-content">
+            <p class="title is-4">Legend</p>
+            <div class="is-flex is-align-items-center ">
+                <svg class="mr-3" style="fill:red" xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2023 Fonticons, Inc.--><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z"/></svg>
+                <p>below average</p>
+            </div>
+            <div class="is-flex is-align-items-center">
+                <svg class="mr-3" style="fill:green" xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2023 Fonticons, Inc.--><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z"/></svg>
+                <p>above average</p>
+            </div>
+        </div>
+        <div each={ item in this.props.state } class="column is-flex is-align-items-center is-justify-content-center">
+            <div class="is-flex is-align-items-center is-flex-direction-column">
+                <p style="width: max-content">{item.name}</p>
+                <div class="is-flex is-justify-content-center" if={ item.variations === false }>
+                    <svg style="fill:red" xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2023 Fonticons, Inc.--><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z"/></svg>
+                </div>
+                <div class="is-flex is-justify-content-center" if={ item.variations === true}>
+                    <svg style="fill:green" xmlns="http://www.w3.org/2000/svg" height="16" width="16" viewBox="0 0 512 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2023 Fonticons, Inc.--><path d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512z"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</variation>

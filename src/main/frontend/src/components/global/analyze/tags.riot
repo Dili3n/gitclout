@@ -1,0 +1,319 @@
+<tags>
+    <div class="container is-flex is-flex-direction-column">
+        <refresh state={ state }></refresh>
+        <div class="row">
+            <main class="column column-60">
+                <h2 class="has-text-light mb-2 is-size-5 ">{ this.repositoryName }</h2>
+                <div class="box max-width">
+                    <div class="columns">
+                        <div each={ tag in this.state.data } class="column">
+                            <a id={ tag.name } onclick={() => draw(tag)} class="button is-primary is-pulled-right">{ tag.name }</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="box max-width is-flex">
+                    <div class="columns">
+                        <div each={ item in this.contributors } class="column radar">
+                            <canvas id={ item } width="400" height="400"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <variation state={ this.state.datavariation }></variation>
+                <div>
+                    <div class="box max-width is-flex">
+                        <div class="columns is-3" style="min-width:100%">
+                            <div class="wrapper bar" id="bar">
+                                <canvas id="contributors"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+    <script>
+        import Chart from 'chart.js/auto';
+
+        export default {
+            chart: undefined, chartRadar: undefined,
+            onMounted() {
+                this.initializeAll();
+                const queryString = window.location.href.split('?')[1] || '';
+                const params = new URLSearchParams(queryString);
+                this.repositoryName = params.get('repository');
+                this.comments = params.get('comments');
+                this.state.sse = new EventSource(window.location.origin + '/sse/subscribe');
+                this.state.sse.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.state.nbTags = data.nbTags;
+                    this.state.nbTagsAnalyzed = data.nbTagsAnalyzed;
+                    this.update();
+                }
+                this.state.sse.onerror = (event) => {
+                    console.log("error : " + event);
+                };
+                this.loadTags();
+            },
+            initializeAll() {
+                this.language = [];
+                this.color = [];
+                this.chart = null;
+                this.previousTag = null;
+                this.chartRadar = {};
+                this.drawInit = false;
+                this.getAllLanguages();
+            },
+            async getAllLanguages() {
+                const response = await fetch(window.location.origin + '/analyze/language',
+                    {
+                        method: 'GET',
+                    });
+                let data = await response.json();
+                this.getLanguageAndColor(data);
+                this.update();
+            },
+            getLanguageAndColor(data) {
+                data.forEach((item) => {
+                    console.log(item);
+                    this.language.push(item.name);
+                    this.color.push(item.color);
+                });
+            },
+            clearCanvasBar() {
+                let canvas = document.getElementById("contributors");
+                let ctx = canvas.getContext("2d");
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (this.chart) {
+                    this.chart.destroy();
+                }
+            },
+
+            clearCanvasRadar() {
+                this.contributors.forEach((item) => {
+                    let canvas = document.getElementById(item);
+                    let ctx = canvas.getContext("2d");
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    if(this.chartRadar[item]) {
+                        this.chartRadar[item].destroy();
+                    }
+                })
+            },
+            activeTag(tag) {
+                if(this.previousTag) {
+                    document.getElementById(this.previousTag.name).classList.remove("is-success");
+                    document.getElementById(this.previousTag.name).classList.add("is-primary");
+                }
+                document.getElementById(tag.name).classList.add("is-success");
+                document.getElementById(tag.name).classList.remove("is-primary");
+                this.previousTag = tag;
+                this.update();
+            },
+            async draw(tag) {
+                this.activeTag(tag);
+                if(this.drawInit){
+                    this.clearCanvasBar();
+                    this.clearCanvasRadar();
+                }
+                this.contributors = await this.contributorsList(tag);
+                if(!this.drawInit) {
+                    this.contributors.forEach((item) => {
+                        this.chartRadar[item.name] = null;
+                    });
+                }
+                this.drawInit = true;
+                await this.drawBarChart(tag);
+                await this.getVariations(tag);
+                await this.getTags(tag);
+                this.state.datatag.forEach((item) => {
+                    this.drawRadar(item.name, item.contributions);
+                });
+            },
+
+            async drawRadar(name, contribution) {
+                let ctx = document.getElementById(name).getContext('2d');
+                let data = []
+                let languages = []
+                let contributionValues = []
+                this.language.forEach(function(item) {
+                    if(contribution.hasOwnProperty(item)) {
+                        languages.push(item);
+                        contributionValues.push(contribution[item]);
+                    }
+                });
+                data.push({label: "",
+                    backgroundColor: this.color[Math.floor(Math.random() * this.color.length)],
+                    data: contributionValues});
+
+                this.chartRadar[name] = new Chart(ctx, {
+                    type: 'radar',
+                    data: {
+                        labels: languages,
+                        datasets: data,
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: name
+                            }
+                        }
+                    }
+                });
+            },
+
+            async drawBarChart(tag) {
+                if (!this.color || this.color.length === 0) {
+                    console.error("Color data is not loaded");
+                    return;
+                }
+                let ctx = document.getElementById("contributors").getContext('2d');
+                let contributions = await this.contributions(tag);
+                let data = [];
+                this.language.forEach((item, index) => {
+                    let d = [];
+                    contributions.forEach((element) => {
+                        d.push(element[item] || 0);
+                    });
+                    let color = this.color[index];
+                    data.push({
+                        label: item,
+                        backgroundColor: color,
+                        data: d,
+                        barThickness: 40,
+                    });
+                })
+                this.chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: this.contributors,
+                        datasets: data,
+                    },
+                    options: {
+                        plugins: {
+                            legend: {
+                                position: 'left',
+                                align: 'center',
+                                labels: {
+                                    boxWidth: 10,
+                                    boxHeight: 10,
+                                    padding: 10,
+                                    usePointStyle: true,
+                            },
+                            }
+                        },
+                        tooltips: {
+                            displayColors: true,
+                            callbacks: {
+                                mode: 'x',
+                            },
+                        },
+                        scales: {
+                            x: {
+                                stacked: true,
+                            },
+                            y: {
+                                stacked: true,
+                                ticks: {
+                                    beginAtZero: true,
+                                },
+                                type: 'linear',
+                            }
+                        },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        legend: {position: 'bottom'},
+                    }
+                });
+            },
+
+
+            async getVariations(tag) {
+                const response = await fetch(window.location.origin + '/repositories/tags/contributors/history?repositoryId='
+                    + this.repositoryName + '&tagId=' + tag.name + '&number=' + 5,
+                    {
+                        method: 'GET',
+                    });
+                this.state.datavariation = await response.json();
+                this.update();
+            },
+
+
+            async getTags(tag) {
+                const response = await fetch(window.location.origin + '/repositories/tags/contributors?repositoryId='
+                    + this.repositoryName + '&tagId=' + tag.name + '&comments=' + this.comments,
+                    {
+                        method: 'GET',
+                    });
+                this.state.datatag = await response.json();
+                this.updateBarSize();
+                this.update();
+            },
+
+            async loadTags() {
+                if (this.state.data === undefined) {
+                    if (this.repositoryName !== undefined) {
+                        const response = await fetch(window.location.origin + '/repositories/tags?repositoryId='
+                            + this.repositoryName,
+                            {
+                                method: 'GET',
+                            });
+                        this.state.data = await response.json();
+                        this.update();
+                    }
+                }
+            },
+            async contributorsList(tag) {
+                let contributor = [];
+                await this.getTags(tag);
+                this.state.datatag.forEach(function (item) {
+                    contributor.push(item.name);
+                });
+                return contributor;
+            },
+
+            async contributions(tag) {
+                let contributions = [];
+                await this.getTags(tag);
+                this.state.datatag.forEach(function (item) {
+                    contributions.push(item.contributions);
+                });
+                return contributions;
+
+            },
+            updateBarSize() {
+                let canvas = document.getElementById("bar");
+                canvas.style.width = this.state.datatag.length * 51 + "px";
+            }
+        }
+    </script>
+    <style>
+        .max-width {
+            max-width: 70vw !important;
+            margin: auto;
+            overflow-x: scroll;
+        }
+
+        .wrapper{
+            width:100%;
+            display:block;
+            overflow:hidden;
+            margin:0 auto;
+            background:#fff;
+            border-radius:4px;
+        }
+
+        .bar canvas {
+            height: 500px !important;
+        }
+
+        .bar {
+            min-width: 100%;
+        }
+
+        .radar canvas {
+            max-width: 450px;
+            max-height: 450px;
+        }
+    </style>
+</tags>

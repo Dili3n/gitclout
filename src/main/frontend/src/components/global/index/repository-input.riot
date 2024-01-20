@@ -1,0 +1,104 @@
+<repository-input>
+    <form class="box " onsubmit={updateText}>
+        <div class="is-flex-direction-column is-align-items-center">
+            <input class="input" type="text" name="text" value={state.text} oninput={updateInputText} />
+            <div class="mt-3 mb-3 is-flex is-flex-direction-row is-align-items-center">
+            </div>
+        </div>
+        <button class="block button mb-0" type="submit" disabled={state.isButtonDisabled}>upload</button>
+
+
+        <progress class="progress is-small is-primary mt-4" value={ this.state.nbTagsAnalyzed } max={ this.state.nbTags }></progress>
+        <p class="my-2">{state.error}</p>
+    </form>
+    <history></history>
+    <script>
+
+        export default {
+
+            onBeforeMount() {
+                this.state.sse = new EventSource(window.location.origin + '/sse/subscribe');
+                this.state.isButtonDisabled = true;
+                this.state.sse.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.state.nbTags = data.nbTags;
+                    this.state.nbTagsAnalyzed = data.nbTagsAnalyzed;
+                    this.update();
+                }
+                this.state.sse.onerror = (event) => {
+                    console.log("error : " + event);
+                };
+            },
+
+            resetClass() {
+                this.state.error = "";
+                this.update();
+                document.querySelector("p").classList.remove("has-text-danger");
+                document.querySelector("p").classList.remove("has-text-success");
+                document.querySelector("p").classList.remove("has-text-warning");
+                document.querySelector("button").classList.remove("is-danger");
+                document.querySelector("button").classList.remove("is-success");
+                document.querySelector("button").classList.remove("is-warning");
+                this.showLoader();
+            },
+
+            showAnalyseData(info) {
+                document.querySelector("p").classList.add("has-text-"+info);
+                document.querySelector("button").classList.add("is-danger"+info);
+            },
+
+            analyseData(data) {
+                this.state.error = data.message;
+                this.state.name = data.repositoryName;
+                this.update();
+                if (data.error == 1) {
+                    this.showAnalyseData("danger");
+                    return;
+                } else if (data.error == 0) {
+                    this.showAnalyseData("success");
+                } else {
+                    this.showAnalyseData("warning");
+                }
+                document.location.href = window.location.origin + '/#/tags?repository='+data.repositoryName;
+                document.querySelector("history").classList.add("is-hidden");
+            },
+
+            showLoader() {
+                document.querySelector("button").classList.add("is-loading");
+            },
+
+            hideLoader() {
+                document.querySelector("button").classList.remove("is-loading");
+            },
+
+            async loadRepository(url) {
+                const response = await fetch(window.location.origin + '/addrepository?repository='+url,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'accept': '*/*',
+                            'Content-Type': 'application/json'
+                        },
+                        body: url
+                    });
+                const data = await response.json();
+                this.hideLoader();
+                this.analyseData(data);
+
+
+            },
+
+            updateText(event) {
+                event.preventDefault();
+                this.resetClass();
+                this.loadRepository(this.state.text);
+
+            },
+            updateInputText(event) {
+                this.state.text = event.target.value;
+                this.state.isButtonDisabled = !this.state.text;
+                this.update();
+            },
+        }
+    </script>
+</repository-input>

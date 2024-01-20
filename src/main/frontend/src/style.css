@@ -1,0 +1,26 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+@keyframes move {
+  0% {
+    background-position: initial;
+  }
+  100% {
+    background-position: 100px 100px;
+  }
+}
+
+body {
+  background: repeating-linear-gradient(
+          45deg,
+          #476A6A,
+          #60A27F
+
+  );
+  background-size: 100px 100px;
+  animation: move 8s linear infinite;
+}

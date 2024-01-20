@@ -1,0 +1,23 @@
+<gitclout>
+    <router>
+        <route path='/'> 
+            <app />
+        </route>
+        <route path="/#/tags(.*)">
+            <tags/>
+        </route>
+    </router>
+
+    <script>
+        import { Router, Route, setBase } from '@riotjs/route'
+        setBase('#')
+        export default {
+            components: {
+                router: Router,
+                route: Route,
+            }
+        }
+    </script>
+</gitclout>
+
+

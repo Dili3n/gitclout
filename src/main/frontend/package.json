@@ -1,0 +1,37 @@
+{
+  "dependencies": {
+    "@riotjs/route": "^9.1.2",
+    "bulma": "^0.9.4",
+    "caniuse-lite": "^1.0.30001281",
+    "chart.js": "^4.4.1",
+    "favicons-webpack-plugin": "^6.0.1",
+    "nyc": "^15.1.0",
+    "riot": "^9.1.2",
+    "sharp": "^0.33.1"
+  },
+  "name": "frontend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "@riotjs/hot-reload": "^9.0.1",
+    "@riotjs/webpack-loader": "^9.0.1",
+    "css-loader": "^6.8.1",
+    "html-webpack-plugin": "^5.5.4",
+    "mini-css-extract-plugin": "^2.7.6",
+    "url": "^0.11.3",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^4.10.0",
+    "webpack-dev-server": "^4.10.0"
+  },
+  "scripts": {
+    "test": "nyc --require esm --require jsdom-global/register --require @riotjs/register mocha src/**/*.spec.js",
+    "cov": "nyc report --reporter=text-lcov",
+    "cov-html": "nyc report --reporter=html",
+    "build": "webpack --mode production",
+    "prepublishOnly": "npm test",
+    "start": "webpack serve --mode development --hot --port 3000"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

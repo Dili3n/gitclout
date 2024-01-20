@@ -1,0 +1,73 @@
+<history>
+    <div id="history">
+    <h2 class="is-size-4 has-text-light mb-2">Last repositories :</h2>
+    <div>
+        <div class="box" each={repository in state.history}>
+            <div id={repository.name} class="button is-danger mr-4" onclick={() => deleteRepository(repository)} class="column is-1">
+                <span class="icon is-small">
+                    <svg class="svg-fill" xmlns="http://www.w3.org/2000/svg" height="16" width="12" viewBox="0 0 384 512"><!--!Font Awesome Free 6.5.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2023 Fonticons, Inc.--><path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/></svg>
+                </span>
+            </div>
+            <div class="button is-primary is-light" onclick={() => getRepository(repository)} class="columns">
+                <div class="column">
+                    <h3 class="is-size-5 has-text-black">{repository.name}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    <script>
+        export default {
+            onUpdated(){
+                this.loadHistory();
+            },
+            async deleteRepository(repository){
+                document.getElementById(repository.name).classList.add('is-loading');
+                const response = await fetch(window.location.origin + '/repositories/delete?name='+repository.name,
+                    {
+                        method: 'DELETE',
+                        headers: {
+                            'accept': '*/*',
+                            'Content-Type': 'application/json'
+                        },
+                        body: repository.url
+                    });
+                await document.getElementById(repository.name).classList.remove('is-loading');
+                await this.loadHistory();
+            },
+
+            async getRepository(repository){
+                const response = await fetch(window.location.origin + '/addrepository',
+                    {
+                        method: 'POST',
+                        headers: {
+                            'accept': '*/*',
+                            'Content-Type': 'application/json'
+                        },
+                        body: repository.url
+                    });
+                const data = await response.json();
+                this.state.name = data.repositoryName;
+                this.update();
+                document.location.href = window.location.origin + '/#/tags?repository='+data.repositoryName;
+            },
+
+            async loadHistory(){
+                const response = await fetch(window.location.origin + '/repositories/history',
+                    {
+                        method: 'GET',
+                    });
+                this.state.history = await response.json();
+                this.update();
+            },
+
+        }
+    </script>
+
+    <style>
+        .svg-fill {
+            fill:white;
+        }
+    </style>
+
+</history>
